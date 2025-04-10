@@ -2,27 +2,28 @@ import os
 import re
 
 from rich.console import Console
-from rich.panel import Panel
 
 console = Console()
 
 
-def initFile(filename, type):
+def initFile(file, type):
     if type == "csv":
         try:
-            open(filename, "r").close()
+            open(file, "r").close()
         except FileNotFoundError:
-            console.print(f"CRITICAL ERROR: {filename} not found. Aborting")
+            console.print(
+                f"[bold red]CRITICAL ERROR[/bold red]: {file} not found. Aborting"
+            )
             quit()
-        return filename
+        return file
 
     elif type == "txt":
-        with open(filename, "r") as f:
-            try:
+        if os.path.exists(file):
+            with open(file, "r") as f:
                 return set([line.strip() for line in f.readlines()])
-            except FileNotFoundError:
-                console.print(f"Error: {filename} not found.")
-                return set()
+        else:
+            console.print(f"[bold yellow]Warning[/bold yellow]: {file} not found.")
+            return set()
 
 
 def isMain(l):
@@ -56,14 +57,6 @@ def check(lines):
             set(re.sub(r"\([^)]*\)", "", phrase).split()) <= set(BLOCKED)
             and not phrase in UNBLOCKED
         ):
-            if UNBLOCK_FILE is None:
-                console.print(
-                    Panel(
-                        "UNBLOCK_FILE is not set and has conflicting phrase!",
-                        title="ERROR",
-                    )
-                )
-                quit()
             console.print(
                 f"You currently have a conflicting phrase [bold red]{phrase}[/bold red] on line [bold red]{i+1}[/bold red], append it to [bold red]{UNBLOCK_FILE}"
             )
@@ -75,7 +68,7 @@ def check(lines):
                     )
                 else:
                     console.print(
-                        f"[bold green]==> [Y]Touch [bold red]{UNBLOCK_FILE}[/bold red] and Append to list[/bold green] [N]Abort [S]Show the culprit line"
+                        f"[bold green]==> [Y]Touch {UNBLOCK_FILE} and append to list[/bold green] [N]Abort [S]Show the culprit line"
                     )
                 response = console.input("[bold green]==> ")
                 if response.lower() == "n":
@@ -123,6 +116,9 @@ def block(lines):
 
             # replace the original substring with the modified one
             lines[i] = l[: start_idx + 1] + substring + l[end_idx:]
+    for i, l in enumerate(lines):
+        lines[i] = l.replace('"', '" ')
+
     while True:
         """the main proccess"""
         allBlocked = True
@@ -152,20 +148,21 @@ def restore(lines, buf):
         l = l.replace(BLOCK_LABEL + " ", "")
         l = l.replace(PARENTHESIS_LABEL, " ")
         l = l.replace(NEWLINE_LABEL, "\n")
+        l = l.replace('" ', '"')
         result.append(l)
     result = buf + result
     return result
 
 
-def write_to_file(filename, lines, debug=True):
+def write_to_file(file, lines, debug=True):
     """Write the given lines to a new csv file."""
-    with open(filename, "w", newline="") as f_out:
+    with open(file, "w", newline="") as f_out:
         for l in lines:
             f_out.write(l + "\n")
     if debug:
-        console.log(f"[bold yellow]DEBUG: [/bold yellow]Lines written to {filename}")
+        console.log(f"[bold yellow]DEBUG: [/bold yellow]Lines written to {file}")
     else:
-        console.log(f"Lines written to {filename}")
+        console.log(f"Lines written to {file}")
 
 
 def process_file(input_file, output_file):
@@ -175,7 +172,8 @@ def process_file(input_file, output_file):
         lines = f_in.readlines()
         buf = lines[:x]
         lines = [line.strip() for line in lines[x:]]
-
+        if DEBUG and not os.path.exists("debug"):
+            os.mkdir("debug")
         console.log("cleaning complete")
         if DEBUG:
             write_to_file("debug/cleaned.csv", lines)
@@ -191,7 +189,7 @@ def process_file(input_file, output_file):
         if DEBUG:
             write_to_file("debug/blocked.csv", lines)
 
-        lines = sorted(lines, key=lambda x: x.split()[n])
+        lines = sorted(lines, key=lambda x: x.split()[n].lower().strip())
         console.log("sorting complete")
         if DEBUG:
             write_to_file("debug/sorted.csv", lines)
