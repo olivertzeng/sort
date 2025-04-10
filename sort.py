@@ -132,7 +132,8 @@ def block(lines):
             if not blocked(l, n):
                 lines[i] = BLOCK_LABEL + " " + l
         n += 1
-    console.print("iterated " + str(n) + " times")
+    if DEBUG:
+        console.log("[bold yellow]DEBUG: [/bold yellow]iterated " + str(n) + " times")
     return n, lines
 
 
