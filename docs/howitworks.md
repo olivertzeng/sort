@@ -44,30 +44,5 @@
 5. Restoring
 	- Make a new line before the label
 	- Reomve the newline label, the block label, and the parenthesis label
-
 > [!NOTE]
-> A specific step by step on how to process "Blocking"
-
-n = 0
-a witness
-an apple
-the world
-cat
-(this刂is) a happy ending
-(it's刂a) hat
-
-n = 1
-a witness
-an apple
-the world
-3D cat
-(this刂is) a happy ending
-(it's刂a) hat
-
-n = 2(all the 2nd word are not blocked, break)
-3D a witness
-3D an apple
-3D the world
-3D 3D cat
-(this刂is) a happy ending
-3D (it's刂a) hat
+> To learn how it **actually** works check [this](/docs/example.md) out
