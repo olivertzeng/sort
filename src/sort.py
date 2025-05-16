@@ -6,8 +6,8 @@ from rich.console import Console
 console = Console()
 
 
-class sortPhrases:
-    def __init__(self, block_file, unblock_file):
+class sortLib:
+    def __init__(self, block_file, unblock_file, debug):
         self.BLOCK_FILE = block_file
         self.UNBLOCK_FILE = unblock_file
         self.BLOCKED = self.init_file(block_file, "txt") or set()
@@ -15,7 +15,7 @@ class sortPhrases:
         self.BLOCK_LABEL = "峀"
         self.NEWLINE_LABEL = "甭"
         self.PARENTHESIS_LABEL = "刂"
-        self.DEBUG = True
+        self.DEBUG = debug
 
     def init_file(self, file, type):
         if type == "csv":
@@ -94,6 +94,8 @@ class sortPhrases:
             result.append(main_line)
         for i, l in enumerate(result):
             result[i] = l[l.index(",") + 1 :]
+        if self.DEBUG:
+            self.writeToFile("../debug/grouped.csv", lines)
         return result
 
     def block(self, lines):
@@ -124,6 +126,8 @@ class sortPhrases:
             console.log(
                 "[bold yellow]DEBUG: [/bold yellow]iterated " + str(n) + " times"
             )
+            self.writeToFile("../debug/blocked.csv", lines)
+
         return n, lines
 
     def label(self, lines):
@@ -134,38 +138,31 @@ class sortPhrases:
         for l in lines:
             l = l.replace(self.BLOCK_LABEL + " ", "")
             l = l.replace(self.PARENTHESIS_LABEL, " ")
-            l = l.replace(self.NEWLINE_LABEL, "\n")
+            # l = l.replace(self.NEWLINE_LABEL, "\n")
             l = l.replace('" ', '"')
             result.append(l)
         result = buf + result
+        console.log("restoring complete")
         return result
+
+    def sortc(self, lines, n):
+        lines = sorted(lines, key=lambda x: x.split()[n].lower().strip())
+        if self.DEBUG:
+            self.writeToFile("../debug/sorted.csv", lines)
+        return lines
 
     def process(self, input_lines):
         lines = [line.strip() for line in input_lines]
         if self.DEBUG and not os.path.exists("debug"):
             os.mkdir("debug")
-
-        if self.DEBUG:
-            self.write_to_file("../debug/cleaned.csv", lines, False)
-
-        lines = self.group(self.label(lines))
-        if self.DEBUG:
-            self.write_to_file("../debug/grouped.csv", lines)
-
+        # lines = self.group(self.label(lines))
         self.check(lines)
         n, lines = self.block(lines)
-        if self.DEBUG:
-            self.write_to_file("../debug/blocked.csv", lines)
-
-        lines = sorted(lines, key=lambda x: x.split()[n].lower().strip())
-        if self.DEBUG:
-            self.write_to_file("../debug/sorted.csv", lines)
-
+        lines = self.sortc(lines, n)
         lines = self.restore(lines, [])
-        console.log("restoring complete")
         return lines
 
-    def write_to_file(self, file, lines, newline=True):
+    def writeToFile(self, file, lines, newline=True):
         with open(file, "w") as f_out:
             for l in lines:
                 f_out.write(l + ("\n" if newline else ""))
