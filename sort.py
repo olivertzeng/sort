@@ -47,9 +47,6 @@ class sortLib:
         )
         return not (l[: l.index(",")] in self.UNBLOCKED) and no_unblock
 
-    def is_ceec(self, l):
-        return l[: l.index(",")] in self.CEEC
-
     def check(self, lines):
         for i, l in enumerate(lines):
             phrase = l.split(",")[0].replace(self.PARENTHESIS_LABEL, " ")
@@ -84,11 +81,6 @@ class sortLib:
                         )
                         prompt_in_process = False
 
-    def removeLineNumbers(self, lines):
-        for i, l in enumerate(lines):
-            lines[i] = l[l.index(",") + 1 :]
-        return lines
-
     def group(self, lines):
         result = []
         main_line = None
@@ -102,7 +94,8 @@ class sortLib:
                     main_line += self.NEWLINE_LABEL + l
         if main_line:
             result.append(main_line)
-        result = self.removeLineNumbers(result)
+        for i, l in enumerate(result):
+            result[i] = l[l.index(",") + 1 :]
         if self.DEBUG:
             self.writeToFile("../debug/grouped.csv", lines)
         return result
@@ -142,13 +135,7 @@ class sortLib:
     def label(self, lines):
         return [f"{i+1},{l}" for i, l in enumerate(lines)]
 
-    def sortc(self, lines, n):
-        lines = sorted(lines, key=lambda x: x.split()[n].lower().strip())
-        if self.DEBUG:
-            self.writeToFile("../debug/sorted.csv", lines)
-        return lines
-
-    def restore(self, lines):
+    def restore(self, lines, buf):
         result = []
         for l in lines:
             l = l.replace(self.BLOCK_LABEL + " ", "")
@@ -156,29 +143,25 @@ class sortLib:
             # l = l.replace(self.NEWLINE_LABEL, "\n")
             l = l.replace('" ', '"')
             result.append(l)
+        result = buf + result
         console.log("restoring complete")
-        if self.DEBUG:
-            self.writeToFile("../debug/restored.csv", lines)
         return result
 
-    def labelCeec(self, lines):
-        for l in lines:
-            if self.is_ceec(l):
-                l = "★" + l + "★"
+    def sortc(self, lines, n):
+        lines = sorted(lines, key=lambda x: x.split()[n].lower().strip())
+        if self.DEBUG:
+            self.writeToFile("../debug/sorted.csv", lines)
         return lines
 
     def process(self, input_lines):
         lines = [line.strip() for line in input_lines]
         if self.DEBUG and not os.path.exists("debug"):
             os.mkdir("debug")
-        # lines = self.group(lines)
-        self.removeLineNumbers(lines)
+        # lines = self.group(self.label(lines))
         self.check(lines)
         n, lines = self.block(lines)
         lines = self.sortc(lines, n)
-        lines = self.restore(lines)
-        lines = self.labelCeec(lines)
-        lines = self.label(lines)
+        lines = self.restore(lines, [])
         return lines
 
     def writeToFile(self, file, lines, newline=True):
