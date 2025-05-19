@@ -18,6 +18,8 @@ class sortLib:
         self.NEWLINE_LABEL = "甭"
         self.PARENTHESIS_LABEL = "刂"
         self.DEBUG = debug
+        if self.DEBUG and not os.path.exists("debug"):
+            os.mkdir("debug")
 
     def init_file(self, file, type):
         if type == "csv":
@@ -98,13 +100,13 @@ class sortLib:
                     result.append(main_line)
                 main_line = l
             else:
-                if main_line:
-                    main_line += self.NEWLINE_LABEL + l
+                main_line = main_line + l
+            # elif main_line:
+            #         main_line += self.NEWLINE_LABEL + l
         if main_line:
             result.append(main_line)
-        result = self.removeLineNumbers(result)
         if self.DEBUG:
-            self.writeToFile("../debug/grouped.csv", lines)
+            self.writeToFile("debug/grouped.csv", result)
         return result
 
     def block(self, lines):
@@ -135,7 +137,7 @@ class sortLib:
             console.log(
                 "[bold yellow]DEBUG: [/bold yellow]iterated " + str(n) + " times"
             )
-            self.writeToFile("../debug/blocked.csv", lines)
+            self.writeToFile("debug/blocked.csv", lines)
 
         return n, lines
 
@@ -145,7 +147,7 @@ class sortLib:
     def sortc(self, lines, n):
         lines = sorted(lines, key=lambda x: x.split()[n].lower().strip())
         if self.DEBUG:
-            self.writeToFile("../debug/sorted.csv", lines)
+            self.writeToFile("debug/sorted.csv", lines)
         return lines
 
     def restore(self, lines):
@@ -158,7 +160,7 @@ class sortLib:
             result.append(l)
         console.log("restoring complete")
         if self.DEBUG:
-            self.writeToFile("../debug/restored.csv", lines)
+            self.writeToFile("debug/restored.csv", lines)
         return result
 
     def labelCeec(self, lines):
@@ -169,10 +171,6 @@ class sortLib:
 
     def process(self, input_lines):
         lines = [line.strip() for line in input_lines]
-        if self.DEBUG and not os.path.exists("debug"):
-            os.mkdir("debug")
-        # lines = self.group(lines)
-        self.removeLineNumbers(lines)
         self.check(lines)
         n, lines = self.block(lines)
         lines = self.sortc(lines, n)

@@ -8,18 +8,19 @@ with open(input_file, "r") as f:
     input_lines = [l.strip() for l in f.readlines()]
 
 categorized = [[] for _ in range(20)]
-processor = sortLib(
+p = sortLib(
     block_file="src/lists/blocked.txt",
     unblock_file="src/lists/unblocked.txt",
     ceec_file="src/lists/ceec.txt",
-    debug=False,
+    debug=True,
 )
 
+input_lines = p.removeLineNumbers(p.group(input_lines))
 for l in input_lines:
-    categorized[int(l.rsplit(",", 1)[-1])].append([l])
-for r in categorized:
-    r = processor.process(r)
-categorized = processor.labelCeec(categorized)
+    index = l.rsplit(",", 1)[-1] or 0
+    categorized[int(index)].append([l])
+categorized = [p.process(r) for r in categorized[:]]
+categorized = p.labelCeec(categorized)
 
 with open("output.csv", "w") as f:
     f.write(title + "\n")
