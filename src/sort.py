@@ -49,8 +49,8 @@ class sortLib:
         )
         return not (l[: l.index(",")] in self.UNBLOCKED) and no_unblock
 
-    def is_ceec(self, l):
-        return l[: l.index(",")] in self.CEEC
+    def is_ceec(self, phrase):
+        return phrase in self.CEEC
 
     def check(self, lines):
         for i, l in enumerate(lines):
@@ -164,13 +164,19 @@ class sortLib:
         return result
 
     def labelCeec(self, lines):
-        for l in lines:
-            if self.is_ceec(l):
-                l = "★" + l + "★"
+        for i, l in enumerate(lines):
+            phrase = l[: l.index(",")]
+            if self.is_ceec(phrase):
+                if self.DEBUG:
+                    console.log(
+                        "[bold yellow]DEBUG: [/bold yellow]Found CEEC phrase " + phrase
+                    )
+                lines[i] = "★ " + phrase + " ★" + l[l.index(",") :]
+
         return lines
 
-    def process(self, input_lines):
-        lines = [line.strip() for line in input_lines]
+    def process(self, ilines):
+        lines = [line.strip() for line in ilines]
         self.check(lines)
         n, lines = self.block(lines)
         lines = self.sortc(lines, n)

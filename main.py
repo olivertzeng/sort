@@ -18,9 +18,8 @@ p = sortLib(
 input_lines = p.removeLineNumbers(p.group(input_lines))
 for l in input_lines:
     index = l.rsplit(",", 1)[-1] or 0
-    categorized[int(index)].append([l])
+    categorized[int(index)].append(l)
 categorized = [p.process(r) for r in categorized[:]]
-categorized = p.labelCeec(categorized)
 
 with open("output.csv", "w") as f:
     f.write(title + "\n")
