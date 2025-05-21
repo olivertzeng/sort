@@ -3,7 +3,7 @@ import re
 
 from rich.console import Console
 
-console = Console()
+c = Console()
 
 
 class sortLib:
@@ -25,8 +25,8 @@ class sortLib:
         if type == "csv":
             try:
                 open(file, "r").close()
-            except FileNotFoundError:
-                console.print(
+            except FileNotFoundError as e:
+                c.print(
                     f"[bold red]CRITICAL ERROR[/bold red]: {file} not found. Aborting"
                 )
                 quit()
@@ -37,7 +37,7 @@ class sortLib:
                 with open(file, "r") as f:
                     return set([line.strip() for line in f.readlines()])
             else:
-                console.print(f"[bold yellow]Warning[/bold yellow]: {file} not found.")
+                c.print(f"[bold yellow]Warning[/bold yellow]: {file} not found.")
                 return set()
 
     def is_main(self, l):
@@ -52,38 +52,41 @@ class sortLib:
     def is_ceec(self, phrase):
         return phrase in self.CEEC
 
-    def check(self, lines):
+    def check(self, lines, remainder):
         for i, l in enumerate(lines):
-            phrase = l.split(",")[0].replace(self.PARENTHESIS_LABEL, " ")
+            phrase = l[: l.index(",")].replace(self.PARENTHESIS_LABEL, " ")
             if (
                 set(re.sub(r"\([^)]*\)", "", phrase).split()) <= self.BLOCKED
                 and phrase not in self.UNBLOCKED
             ):
-                console.print(
-                    f"You currently have a conflicting phrase [bold red]{phrase}[/bold red] on line [bold red]{i+1}[/bold red], append it to [bold red]{self.UNBLOCK_FILE}"
+                if phrase == None or re.match(r"^\s*$", phrase):
+                    c.print(
+                        f"[bold red]ERROR:[/bold red] phrase not found on line [bold red]{remainder+i+2}[/bold red], aborting.\n[bold yellow]{l}[/bold yellow]"
+                    )
+                    quit()
+                c.print(
+                    f"You currently have a conflicting phrase [bold red]{phrase}[/bold red] on line [bold red]{remainder+i+2}[/bold red], do you want to append it to [bold red]{self.UNBLOCK_FILE}"
                 )
                 prompt_in_process = True
                 while prompt_in_process:
                     if os.path.exists(self.UNBLOCK_FILE):
-                        console.print(
+                        c.print(
                             f"[bold green]==> [Y]Append to list[/bold green] [N]Abort [S]Show the culprit line"
                         )
                     else:
-                        console.print(
-                            f"[bold green]==> [Y]Touch {self.UNBLOCK_FILE} and append to list[/bold green] [N]Abort [S]Show the culprit line"
+                        c.print(
+                            f"[bold green]==> [Y]Touch {self.UNBLOCK_FILE} and append to list[/bold green] [N/Q]Abort [S]Show the culprit line"
                         )
-                    response = console.input("[bold green]==> ")
-                    if response.lower() == "n":
-                        console.print("Phrase not appended, aborting.")
+                    response = c.input("[bold green]==> ")
+                    if response.lower() == "n" or response.lower() == "q":
+                        c.print("Phrase not appended, aborting.")
                         quit()
                     elif response.lower() == "s":
-                        console.print(l)
+                        c.print(l)
                     else:
                         with open(self.UNBLOCK_FILE, "a") as f:
                             f.write(phrase + "\n")
-                        console.print(
-                            f"Phrase appended to [bold red]{self.UNBLOCK_FILE}"
-                        )
+                        c.print(f"Phrase appended to [bold red]{self.UNBLOCK_FILE}")
                         prompt_in_process = False
 
     def removeLineNumbers(self, lines):
@@ -105,6 +108,7 @@ class sortLib:
             #         main_line += self.NEWLINE_LABEL + l
         if main_line:
             result.append(main_line)
+        result = self.removeLineNumbers(result)
         if self.DEBUG:
             self.writeToFile("debug/grouped.csv", result)
         return result
@@ -134,9 +138,7 @@ class sortLib:
                     lines[i] = self.BLOCK_LABEL + " " + l
             n += 1
         if self.DEBUG:
-            console.log(
-                "[bold yellow]DEBUG: [/bold yellow]iterated " + str(n) + " times"
-            )
+            c.log("[bold yellow]DEBUG: [/bold yellow]iterated " + str(n) + " times")
             self.writeToFile("debug/blocked.csv", lines)
 
         return n, lines
@@ -158,7 +160,7 @@ class sortLib:
             # l = l.replace(self.NEWLINE_LABEL, "\n")
             l = l.replace('" ', '"')
             result.append(l)
-        console.log("restoring complete")
+        c.log("restoring complete")
         if self.DEBUG:
             self.writeToFile("debug/restored.csv", lines)
         return result
@@ -168,22 +170,22 @@ class sortLib:
             phrase = l[: l.index(",")]
             if self.is_ceec(phrase):
                 if self.DEBUG:
-                    console.log(
+                    c.log(
                         "[bold yellow]DEBUG: [/bold yellow]Found CEEC phrase " + phrase
                     )
                 lines[i] = "★ " + phrase + " ★" + l[l.index(",") :]
 
         return lines
 
-    def process(self, ilines):
+    def process(self, ilines, remainder):
         lines = [line.strip() for line in ilines]
-        self.check(lines)
+        self.check(lines, remainder)
         n, lines = self.block(lines)
         lines = self.sortc(lines, n)
         lines = self.restore(lines)
         lines = self.labelCeec(lines)
         lines = self.label(lines)
-        return lines
+        return lines, remainder + len(ilines)
 
     def writeToFile(self, file, lines, newline=True):
         with open(file, "w") as f_out:
