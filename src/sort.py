@@ -52,7 +52,8 @@ class sortLib:
     def is_ceec(self, phrase):
         return phrase in self.CEEC
 
-    def check(self, lines, remainder):
+    def check(self, lines, remainder, cat):
+        noPhrase = False
         for i, l in enumerate(lines):
             phrase = l[: l.index(",")].replace(self.PARENTHESIS_LABEL, " ")
             if (
@@ -61,12 +62,13 @@ class sortLib:
             ):
                 if phrase == None or re.match(r"^\s*$", phrase):
                     c.print(
-                        f"[bold red]ERROR:[/bold red] phrase not found on line [bold red]{remainder+i+2}[/bold red], aborting.\n[bold yellow]{l}[/bold yellow]"
+                        f"[bold red]ERROR:[/bold red] phrase not found on line [bold red]{remainder+i+2}[/bold red]\n[bold yellow]{l}[/bold yellow] in category {cat}"
                     )
-                    quit()
-                c.print(
-                    f"You currently have a conflicting phrase [bold red]{phrase}[/bold red] on line [bold red]{remainder+i+2}[/bold red], do you want to append it to [bold red]{self.UNBLOCK_FILE}"
-                )
+                    noPhrase = True
+                else:
+                    c.print(
+                        f"You currently have a conflicting phrase [bold red]{phrase}[/bold red] on line [bold red]{remainder+i+2}[/bold red] in category {cat}, do you want to append it to [bold red]{self.UNBLOCK_FILE}"
+                    )
                 prompt_in_process = True
                 while prompt_in_process:
                     if os.path.exists(self.UNBLOCK_FILE):
@@ -88,13 +90,17 @@ class sortLib:
                             f.write(phrase + "\n")
                         c.print(f"Phrase appended to [bold red]{self.UNBLOCK_FILE}")
                         prompt_in_process = False
+        if noPhrase:
+            c.print(
+                f"[bold red]ERROR: [/bold red][red]Some phrases were missing, aborting."
+            )
 
     def removeLineNumbers(self, lines):
         for i, l in enumerate(lines):
             lines[i] = l[l.index(",") + 1 :]
         return lines
 
-    def group(self, lines):
+    def group(self, lines, cat):
         result = []
         main_line = None
         for l in lines:
@@ -110,10 +116,10 @@ class sortLib:
             result.append(main_line)
         result = self.removeLineNumbers(result)
         if self.DEBUG:
-            self.writeToFile("debug/grouped.csv", result)
+            self.writeToFile(f"debug/grouped{cat}.csv", result)
         return result
 
-    def block(self, lines):
+    def block(self, lines, cat):
         n = 0
         for i, l in enumerate(lines):
             if "(" in l and ")" in l:
@@ -138,21 +144,23 @@ class sortLib:
                     lines[i] = self.BLOCK_LABEL + " " + l
             n += 1
         if self.DEBUG:
-            c.log("[bold yellow]DEBUG: [/bold yellow]iterated " + str(n) + " times")
-            self.writeToFile("debug/blocked.csv", lines)
+            c.log(
+                f"[bold yellow]DEBUG: [/bold yellow]iterated {n} times in category {cat}"
+            )
+            self.writeToFile(f"debug/blocked{cat}.csv", lines)
 
         return n, lines
 
-    def label(self, lines):
+    def labelLineNumbers(self, lines):
         return [f"{i+1},{l}" for i, l in enumerate(lines)]
 
-    def sortc(self, lines, n):
+    def sortc(self, lines, n, cat):
         lines = sorted(lines, key=lambda x: x.split()[n].lower().strip())
         if self.DEBUG:
-            self.writeToFile("debug/sorted.csv", lines)
+            self.writeToFile(f"debug/sorted{cat}.csv", lines)
         return lines
 
-    def restore(self, lines):
+    def restore(self, lines, cat):
         result = []
         for l in lines:
             l = l.replace(self.BLOCK_LABEL + " ", "")
@@ -162,29 +170,31 @@ class sortLib:
             result.append(l)
         c.log("restoring complete")
         if self.DEBUG:
-            self.writeToFile("debug/restored.csv", lines)
+            self.writeToFile(f"debug/restored{cat}.csv", result)
         return result
 
-    def labelCeec(self, lines):
+    def labelCeec(self, lines, cat):
         for i, l in enumerate(lines):
             phrase = l[: l.index(",")]
             if self.is_ceec(phrase):
                 if self.DEBUG:
                     c.log(
-                        "[bold yellow]DEBUG: [/bold yellow]Found CEEC phrase " + phrase
+                        f"[bold yellow]DEBUG: [/bold yellow]Found CEEC phrase {phrase} in category {cat}"
                     )
                 lines[i] = "★ " + phrase + " ★" + l[l.index(",") :]
 
         return lines
 
-    def process(self, ilines, remainder):
+    def process(self, ilines, remainder, cat):
         lines = [line.strip() for line in ilines]
-        self.check(lines, remainder)
-        n, lines = self.block(lines)
-        lines = self.sortc(lines, n)
-        lines = self.restore(lines)
-        lines = self.labelCeec(lines)
-        lines = self.label(lines)
+        self.check(lines, remainder, cat)
+        n, lines = self.block(lines, cat)
+        lines = self.sortc(lines, n, cat)
+        lines = self.restore(lines, cat)
+        lines = self.labelCeec(lines, cat)
+        lines = self.labelLineNumbers(lines)
+        if self.DEBUG:
+            self.writeToFile(f"debug/output{cat}.csv", lines)
         return lines, remainder + len(ilines)
 
     def writeToFile(self, file, lines, newline=True):

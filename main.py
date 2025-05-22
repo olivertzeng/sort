@@ -7,7 +7,7 @@ with open(input_file, "r") as f:
     title = f.readline().strip()
     input_lines = [l.strip() for l in f.readlines()]
 
-categorized = [[] for _ in range(20)]
+categorized = [[] for _ in range(21)]
 x = 0
 d = True
 p = sortLib(
@@ -17,7 +17,7 @@ p = sortLib(
     debug=d,
 )
 
-input_lines = p.group(input_lines)
+input_lines = p.group(input_lines, "")
 
 for l in input_lines:
     index = l.rsplit(",", 1)[-1] or 0
@@ -30,9 +30,9 @@ if d:
             for e in r:
                 f.write(e + "\n")
 
-for r in categorized[:]:
-    result, x = p.process(r, x)
-    categorized.append(result)
+for cat, r in enumerate(categorized[:]):
+    result, x = p.process(r, x, cat)
+    categorized[cat] = result
 
 with open("output.csv", "w") as f:
     f.write(title + "\n")
