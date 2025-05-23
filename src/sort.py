@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 
 from rich.console import Console
 
@@ -7,18 +8,21 @@ c = Console()
 
 
 class sortLib:
-    def __init__(self, block_file, unblock_file, ceec_file, debug):
-        self.BLOCK_FILE = block_file
-        self.UNBLOCK_FILE = unblock_file
-        self.CEEC_FILE = ceec_file
-        self.BLOCKED = self.init_file(block_file, "txt") or set()
-        self.UNBLOCKED = self.init_file(unblock_file, "txt") or set()
-        self.CEEC = self.init_file(ceec_file, "txt") or set()
+    def __init__(self, blockFile, unblockFile, ceecFile, perSection, debug):
+        self.PER_SECTION = perSection
+        self.BLOCK_FILE = blockFile
+        self.UNBLOCK_FILE = unblockFile
+        self.CEEC_FILE = ceecFile
+        self.BLOCKED = self.init_file(blockFile, "txt") or set()
+        self.UNBLOCKED = self.init_file(unblockFile, "txt") or set()
+        self.CEEC = self.init_file(ceecFile, "txt") or set()
         self.BLOCK_LABEL = "峀"
         self.NEWLINE_LABEL = "甭"
         self.PARENTHESIS_LABEL = "刂"
         self.DEBUG = debug
-        if self.DEBUG and not os.path.exists("debug"):
+        if os.path.exists("debug"):
+            shutil.rmtree("debug")
+        if self.DEBUG:
             os.mkdir("debug")
 
     def init_file(self, file, type):
@@ -192,7 +196,8 @@ class sortLib:
         lines = self.sortc(lines, n, cat)
         lines = self.restore(lines, cat)
         lines = self.labelCeec(lines, cat)
-        lines = self.labelLineNumbers(lines)
+        if self.PER_SECTION:
+            lines = self.labelLineNumbers(lines)
         if self.DEBUG:
             self.writeToFile(f"debug/output{cat}.csv", lines)
         return lines, remainder + len(ilines)

@@ -8,12 +8,15 @@ with open(input_file, "r") as f:
     input_lines = [l.strip() for l in f.readlines()]
 
 categorized = [[] for _ in range(21)]
-x = 0
+uncategorized = []
 d = True
+perSection = False
+x = 0
 p = sortLib(
-    block_file="src/lists/blocked.txt",
-    unblock_file="src/lists/unblocked.txt",
-    ceec_file="src/lists/ceec.txt",
+    blockFile="src/lists/blocked.txt",
+    unblockFile="src/lists/unblocked.txt",
+    ceecFile="src/lists/ceec.txt",
+    perSection=perSection,
     debug=d,
 )
 
@@ -34,8 +37,18 @@ for cat, r in enumerate(categorized[:]):
     result, x = p.process(r, x, cat)
     categorized[cat] = result
 
-with open("output.csv", "w") as f:
-    f.write(title + "\n")
+if not perSection:
     for r in categorized:
         for e in r:
+            uncategorized.append(e)
+    uncategorized = p.labelLineNumbers(uncategorized)
+
+with open("output.csv", "w") as f:
+    f.write(title + "\n")
+    if perSection:
+        for r in categorized:
+            for e in r:
+                f.write(e + "\n")
+    else:
+        for e in uncategorized:
             f.write(e + "\n")
